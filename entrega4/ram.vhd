@@ -60,10 +60,6 @@ architecture ram_arch of ram is
             ram_content(i+3) 	:= current_word(07 downto 00);
             i := i + 4;
         end loop;
-		ram_content(1024) := x"00";
-		ram_content(1025) := x"00";
-		ram_content(1026) := x"00";
-		ram_content(1027) := x"6F";
         return ram_content;
     end function;
 	-- Declaraç±ao da memória a ser utilizada no projeto

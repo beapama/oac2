@@ -94,15 +94,15 @@ begin
     begin
         case opcode is
             when "0010011" => -- Tipo I
-                imm <= (31 downto 12 => instruction(31)) & instruction(30 downto 20);
+                imm <= (31 downto 11 => instruction(31)) & instruction(30 downto 20);
             when "0100011" => -- Tipo S
-                imm <= (31 downto 12 => instruction(31)) & instruction(30 downto 25) & instruction(11 downto 7);
+                imm <= (31 downto 11 => instruction(31)) & instruction(30 downto 25) & instruction(11 downto 7);
             when "1100011" => -- Tipo B (Branch)
                 imm <= (31 downto 12 => instruction(31)) & instruction(7) & instruction(30 downto 25) & instruction(11 downto 8) & "0";
             when "1101111" => -- Tipo J (Jal)
-                imm <= (31 downto 12 => instruction(31)) & instruction(19 downto 12) & instruction(20) & instruction(30 downto 21) & "0";
+                imm <= (31 downto 20 => instruction(31)) & instruction(19 downto 12) & instruction(20) & instruction(30 downto 21) & "0";
             when "1100111" => -- Tipo I (Jalr)
-                imm <= (31 downto 12 => instruction(31)) & instruction(30 downto 20);
+                imm <= (31 downto 11 => instruction(31)) & instruction(30 downto 20);
             -- Adicionar mais casos conforme necessário
             when others =>
                 imm <= (others => '0');
@@ -110,7 +110,7 @@ begin
     end process;
 
     -- Geração dos sinais de controle
-    process(opcode, funct3, funct7)
+    process(opcode, funct3, funct7, imm)
     begin
         -- Valores padrão
         RegWrite_id <= '0';
@@ -118,15 +118,18 @@ begin
         MemWrite_id <= '0';
         AluSrc_id <= '0';
         MemToReg_id <= '0';
+        id_PC_src <= '0';
         AluOp_id <= "000";
 
         case opcode is
             when "0110011" => -- Tipo R
                 RegWrite_id <= '1';
                 AluOp_id <= "010";
+                id_PC_src <= '0';
             when "0010011" => -- Tipo I
                 RegWrite_id <= '1';
                 AluSrc_id <= '1';
+                id_PC_src <= '0';
                 case funct3 is
                     when "000" => AluOp_id <= "000"; -- ADDI
                     when "010" => AluOp_id <= "011"; -- SLTI
@@ -139,25 +142,28 @@ begin
                 AluSrc_id <= '1';
                 MemToReg_id <= '1';
                 AluOp_id <= "000"; -- ADD
+                id_PC_src <= '0';
             when "0100011" => -- SW
                 MemWrite_id <= '1';
                 AluSrc_id <= '1';
                 AluOp_id <= "000"; -- ADD
+                id_PC_src <= '0';
             when "1101111" => -- JAL
                 RegWrite_id <= '1';
-                id_Jump_PC <= std_logic_vector(signed(PC_id) + signed(imm));
+                id_Jump_PC <= std_logic_vector(to_signed((to_integer(signed(PC_id)) + to_integer(signed(imm))), id_Jump_PC'length));
                 id_PC_src <= '1';
             when "1100111" => -- JALR
                 RegWrite_id <= '1';
-                id_Jump_PC <= std_logic_vector(signed(RA_id) + signed(imm));
+                id_Jump_PC <= std_logic_vector(to_signed((to_integer(signed(RA_id)) + to_integer(signed(imm))), id_Jump_PC'length));
                 id_PC_src <= '1';
             when "1100011" => -- Branch
                 -- Calculo do endereço de desvio condicional
-                id_Jump_PC <= std_logic_vector(signed(PC_id) + signed(imm));
+                id_Jump_PC <= std_logic_vector(to_signed((to_integer(signed(PC_id)) + to_integer(signed(imm))), id_Jump_PC'length));
                 id_PC_src <= '1';
                 id_Branch_nop <= '1';
             -- Adicionar mais casos conforme necessário
             when others =>
+                id_PC_src <= '0';
                 RegWrite_id <= '0';
                 MemRead_id <= '0';
                 MemWrite_id <= '0';
@@ -187,8 +193,25 @@ begin
     BEX(31 downto 0) <= RA_id;
 
     -- Atribuição dos sinais de controle ao COP
-    --COP_id <= opcode; -- Exemplo simplificado, ajustar conforme necessário
-    COP_ex <= COP_id;
+
+    COP_id <= NOP when instruction(31 downto 0)=x"00000000" else
+                HALT when instruction(31 downto 0)=x"0000006F" else
+                ADD when opcode="0110011" and funct3="000" else
+                SLT when opcode="0110011" and funct3="010" else
+                ADDI when opcode="0010011" and funct3="000" else
+                SLTI when opcode="0010011" and funct3="010" else
+                SLLI when opcode="0010011" and funct3="001" else
+                SRLI when opcode="0010011" and funct3="101" and funct7="0000000" else
+                SRAI when opcode="0010011" and funct3="101" and funct7="0100000" else
+                LW when opcode="0000011" and funct3="010" else
+                SW when opcode="0100011" and funct3="010" else
+                BEQ when opcode="1100011" and funct3="000" else
+                BNE when opcode="1100011" and funct3="001" else
+                BLT when opcode="1100011" and funct3="100" else
+                JAL when opcode="1101111" else
+                JALR when opcode="1100111" and funct3="000" else
+                NOINST;
+    -- COP_ex <= COP_id;
 
     -- Detecção de Conflitos
     process(clock)

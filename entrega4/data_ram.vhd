@@ -39,7 +39,7 @@ architecture data_ram_arch of data_ram is
         variable data_ram		: memory_type 	:= (others => (others => '0'));
         variable i				: integer 		:= 0;
     begin
-        while i < 512 loop
+        while i < 256 loop
             exit when endfile(file_handle);
             readline(file_handle, current_line);
             for j in 0 to address_bits - 1 loop
