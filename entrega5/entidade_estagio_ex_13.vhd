@@ -99,26 +99,31 @@ begin
         if rising_edge(clock) then
             -- Seleciona os operandos para a ULA (forwarding ou valores atuais)
             if (RegWrite_mem = '1' and rd_mem = rs1_id_ex_alias) then
-                ex_forward_A <= ula_mem;
+                ex_forward_A <= Memval_mem;
+				ex_fw_A_Branch <= "10";
             elsif (RegWrite_wb = '1' and rd_wb = rs1_id_ex_alias) then
                 ex_forward_A <= writedata_wb;
+				ex_fw_A_Branch <= "01";
             else
                 ex_forward_A <= rs1; -- Aqui rs1 precisa ser definido adequadamente
+				ex_fw_A_Branch <= "00";
             end if;
 
             if (RegWrite_mem = '1' and rd_mem = rd_id_ex_alias) then
-                ex_forward_B <= ula_mem;
+                ex_forward_B <= Memval_mem;
+				ex_fw_B_Branch <= "10";
             elsif (RegWrite_wb = '1' and rd_wb = rd_id_ex_alias) then
                 ex_forward_B <= writedata_wb;
+				ex_fw_B_Branch <= "01";
             else
                 ex_forward_B <= rs2; -- Aqui rs2 precisa ser definido adequadamente
+				ex_fw_B_Branch <= "00";
             end if;
 
             -- Atribuição das saídas
             ULA_ex <= result_ula;
             MemRead_ex <= BEX(147);
             rd_ex <= rd_id_ex_alias;
-			
 
             -- Atribuição de BMEM
             BMEM(115 downto 114) <= BEX(151 downto 150);
