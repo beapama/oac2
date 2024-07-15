@@ -58,11 +58,11 @@ architecture estagio_ex_arch of estagio_ex_13 is
     signal result_ula : std_logic_vector(31 downto 0);
     signal ula_zero : std_logic;
     signal ex_forward_A, ex_forward_B : std_logic_vector(31 downto 0);
-    signal ex_mem_read, ex_reg_write : std_logic;
     
     -- Aliases para facilitar a leitura de sinais dentro do BEX
     alias rs1_id_ex_alias is BEX(132 downto 128);
     alias rs2_id_ex_alias is BEX(137 downto 133);
+    alias rd_id_ex_alias is BEX(142 downto 138);
     alias imm_alias is BEX(95 downto 64);
     alias npc_ex_alias is BEX(127 downto 96);
     alias ula_op_alias is BEX(145 downto 143);
@@ -91,22 +91,24 @@ begin
 		zero => ula_zero
 	);
 
+	rs2 <= BEX(63 downto 32);
+	rs1 <= BEX(31 downto 0);
     -- Comportamento do estágio de execução
     process(clock)
     begin
         if rising_edge(clock) then
             -- Seleciona os operandos para a ULA (forwarding ou valores atuais)
-            if (RegWrite_mem = '1' and rd_mem = rs1_id_ex) then
+            if (RegWrite_mem = '1' and rd_mem = rs1_id_ex_alias) then
                 ex_forward_A <= ula_mem;
-            elsif (RegWrite_wb = '1' and rd_wb = rs1_id_ex) then
+            elsif (RegWrite_wb = '1' and rd_wb = rs1_id_ex_alias) then
                 ex_forward_A <= writedata_wb;
             else
                 ex_forward_A <= rs1; -- Aqui rs1 precisa ser definido adequadamente
             end if;
 
-            if (RegWrite_mem = '1' and rd_mem = rs2_id_ex) then
+            if (RegWrite_mem = '1' and rd_mem = rd_id_ex_alias) then
                 ex_forward_B <= ula_mem;
-            elsif (RegWrite_wb = '1' and rd_wb = rs2_id_ex) then
+            elsif (RegWrite_wb = '1' and rd_wb = rd_id_ex_alias) then
                 ex_forward_B <= writedata_wb;
             else
                 ex_forward_B <= rs2; -- Aqui rs2 precisa ser definido adequadamente
@@ -114,20 +116,21 @@ begin
 
             -- Atribuição das saídas
             ULA_ex <= result_ula;
-            MemRead_ex <= MemRead_mem; --errado
-            rd_ex <= rs2_id_ex; --?
+            MemRead_ex <= BEX(147);
+            rd_ex <= rd_id_ex_alias;
+			
 
             -- Atribuição de BMEM
-            BMEM(115 downto 114) <= "00"; -- Placeholder for MemToReg_ex
-            BMEM(113) <= RegWrite_mem;
-            BMEM(112) <= '0'; -- Placeholder for MemWrite_ex
-            BMEM(111) <= MemRead_mem;
+            BMEM(115 downto 114) <= BEX(151 downto 150);
+            BMEM(113) <= BEX(149);
+            BMEM(112) <= BEX(148); -- Placeholder for MemWrite_ex
+            BMEM(111) <= BEX(147);
             BMEM(110 downto 79) <= npc_ex_alias;
             BMEM(78 downto 47) <= result_ula;
             BMEM(46 downto 15) <= (others => '0'); -- Placeholder for dado_arma_ex
-            BMEM(14 downto 10) <= rs1_id_ex;
-            BMEM(9 downto 5) <= rs2_id_ex;
-            BMEM(4 downto 0) <= rs2_id_ex;
+            BMEM(14 downto 10) <= rs1_id_ex_alias;
+            BMEM(9 downto 5) <= rs2_id_ex_alias;
+            BMEM(4 downto 0) <= rd_id_ex_alias;
 
             -- Atribuição de COP_mem
             COP_mem <= COP_ex;
