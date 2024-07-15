@@ -223,6 +223,7 @@ begin
         if rising_edge(clock) then
             -- Inicializar sinais de hazard
             id_hd_hazard <= '0';
+            COP_ex <= COP_id;
             -- id_Branch_nop <= '0';
 
             -- Hazard de leitura após escrita (RAW) - Confere os estágios EX e MEM

@@ -52,19 +52,20 @@ entity estagio_ex_13 is
 		);
 end entity;
 
-architecture estagio_ex_arch_13 of estagio_ex_13 is
+architecture estagio_ex_arch of estagio_ex_13 is
     -- Sinais internos
     signal rs1, rs2 : std_logic_vector(31 downto 0);
     signal result_ula : std_logic_vector(31 downto 0);
+    signal ula_zero : std_logic;
     signal ex_forward_A, ex_forward_B : std_logic_vector(31 downto 0);
     signal ex_mem_read, ex_reg_write : std_logic;
     
     -- Aliases para facilitar a leitura de sinais dentro do BEX
-    alias rs1_id_ex_alias is BEX(4 downto 0);
-    alias rs2_id_ex_alias is BEX(9 downto 5);
-    alias imm_alias is BEX(31 downto 10);
-    alias npc_ex_alias is BEX(110 downto 79);
-    alias ula_op_alias is BEX(3 downto 0);
+    alias rs1_id_ex_alias is BEX(132 downto 128);
+    alias rs2_id_ex_alias is BEX(137 downto 133);
+    alias imm_alias is BEX(95 downto 64);
+    alias npc_ex_alias is BEX(127 downto 96);
+    alias ula_op_alias is BEX(145 downto 143);
 
 	component alu is
 		port(
@@ -79,24 +80,16 @@ architecture estagio_ex_arch_13 of estagio_ex_13 is
 		);
 	end component alu;
 
-	component forwarding_unit_13 is
-		port (
-		  -- Entradas
-		  rs1_id_ex : in std_logic_vector(4 downto 0); -- Registrador fonte 1
-		  rs2_id_ex : in std_logic_vector(4 downto 0); -- Registrador fonte 2
-		  rd_mem : in std_logic_vector(4 downto 0); -- Registrador destino do estágio MEM
-		  rd_wb : in std_logic_vector(4 downto 0); -- Registrador destino do estágio WB
-		  regwrite_mem : in std_logic; -- Sinal de escrita no registrador no estágio MEM
-		  regwrite_wb : in std_logic; -- Sinal de escrita no registrador no estágio WB
-		  result_mem : in std_logic_vector(31 downto 0); -- Resultado da ULA no estágio MEM
-		  result_wb : in std_logic_vector(31 downto 0); -- Resultado da ULA no estágio WB
-		  -- Saídas
-		  forward_a : out std_logic_vector(1 downto 0); -- Seleção de encaminhamento para operando A
-		  forward_b : out std_logic_vector(1 downto 0)  -- Seleção de encaminhamento para operando B
-		);
-	end component forwarding_unit_13;
-
 begin
+
+	ula : alu port map (
+		-- Entradas
+		in_a => ex_forward_A,
+		in_b => ex_forward_B,
+		ALUOp => ula_op_alias,
+		ULA	=> result_ula,
+		zero => ula_zero
+	);
 
     -- Comportamento do estágio de execução
     process(clock)
@@ -119,37 +112,10 @@ begin
                 ex_forward_B <= rs2; -- Aqui rs2 precisa ser definido adequadamente
             end if;
 
-            -- Operação da ULA
-            case COP_ex is
-                when "0000" => -- ADD
-                    result_ula <= ex_forward_A + ex_forward_B;
-                when "0001" => -- SUB
-                    result_ula <= ex_forward_A - ex_forward_B;
-                when "0010" => -- AND
-                    result_ula <= ex_forward_A and ex_forward_B;
-                when "0011" => -- OR
-                    result_ula <= ex_forward_A or ex_forward_B;
-                when "0100" => -- SLLI (Shift Left Logical Immediate)
-                    result_ula <= ex_forward_A sll to_integer(unsigned(imm_alias));
-                when "0101" => -- LW (Load Word)
-                    result_ula <= ex_forward_A + ex_forward_B;
-                when "0110" => -- SW (Store Word)
-                    result_ula <= ex_forward_A + ex_forward_B;
-                when "0111" => -- BEQ (Branch if Equal)
-                    if (ex_forward_A = ex_forward_B) then
-                        result_ula <= npc_ex_alias + imm_alias;
-                    else
-                        result_ula <= npc_ex_alias;
-                    end if;
-                -- Adicionar outras operações conforme necessário
-                when others =>
-                    result_ula <= (others => '0');
-            end case;
-
             -- Atribuição das saídas
             ULA_ex <= result_ula;
-            MemRead_ex <= MemRead_mem;
-            rd_ex <= rs2_id_ex;
+            MemRead_ex <= MemRead_mem; --errado
+            rd_ex <= rs2_id_ex; --?
 
             -- Atribuição de BMEM
             BMEM(115 downto 114) <= "00"; -- Placeholder for MemToReg_ex

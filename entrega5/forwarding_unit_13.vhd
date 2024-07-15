@@ -20,7 +20,7 @@ entity forwarding_unit_13 is
   );
 end forwarding_unit_13;
 
-architecture forwarding_unit_arch_13 of forwarding_unit_13 is
+architecture forwarding_unit_arch of forwarding_unit_13 is
 begin
   process(rs1_id_ex, rs2_id_ex, rd_mem, rd_wb, regwrite_mem, regwrite_wb)
   begin
@@ -42,4 +42,4 @@ begin
       forward_b <= "01"; -- Encaminha resultado do estágio WB
     end if;
   end process;
-end forwarding_unit_arch_13;
+end forwarding_unit_arch;
