@@ -78,6 +78,22 @@ architecture Behavioral of estagio_id is
     signal PC_id : std_logic_vector(31 downto 0);
     signal RA_id, RB_id : std_logic_vector(31 downto 0);
 
+    component regfile is
+        port(
+            -- Entradas
+            clock			: 	in 		std_logic;						-- Base de tempo - Bancada de teste
+            RegWrite		: 	in 		std_logic; 						-- Sinal de escrita no RegFile
+            read_reg_rs1	: 	in 		std_logic_vector(04 downto 0);	-- Endere�o do registrador na sa�da RA
+            read_reg_rs2	: 	in 		std_logic_vector(04 downto 0);	-- Endere�o do registrador na sa�da RB
+            write_reg_rd	: 	in 		std_logic_vector(04 downto 0);	-- Endere�o do registrador a ser escrito
+            data_in			: 	in 		std_logic_vector(31 downto 0);	-- Valor a ser escrito no registrador
+            
+            -- Sa�das
+            data_out_a		: 	out 	std_logic_vector(31 downto 0);	-- Valor lido pelo endere�o rs1
+            data_out_b		: 	out 	std_logic_vector(31 downto 0) 	-- Valor lido pelo enderc�o rs2
+        );
+    end component;
+
 begin
     -- Extração dos campos da instrução
     instruction <= BID(31 downto 0);
@@ -88,6 +104,19 @@ begin
     rs1 <= instruction(19 downto 15);
     rs2 <= instruction(24 downto 20);
     funct7 <= instruction(31 downto 25);
+
+    regs : regfile port map(
+        clock			=> clock,
+        RegWrite		=> RegWrite_id,
+        read_reg_rs1	=> rs1,
+        read_reg_rs2	=> rs2,
+        write_reg_rd	=> rd,
+        data_in			=> writedata_wb,
+        
+        -- Sa�das
+        data_out_a		=> RA_id,
+        data_out_b		=> RB_id
+    );
 
     -- Geração dos valores imediatos
     process(opcode, instruction)
