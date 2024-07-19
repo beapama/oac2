@@ -33,7 +33,7 @@ use work.tipos.all;
 -- A defini�ao dos sinais vindos de outros m�dulos encontra-se nos coment�rios da declara�ao de 
 -- entidade do est�gio id.
 
-entity estagio_id is
+entity estagio_id_13 is
     port(
 		-- Entradas
 		clock				: in 	std_logic; 						-- Base de tempo- bancada de teste
@@ -65,7 +65,7 @@ entity estagio_id is
     );
 end entity;
 
-architecture Behavioral of estagio_id is
+architecture Behavioral of estagio_id_13 is
     -- Declaração de sinais internos
     signal opcode : std_logic_vector(6 downto 0);
     signal funct3 : std_logic_vector(2 downto 0);

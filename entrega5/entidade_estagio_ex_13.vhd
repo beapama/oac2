@@ -54,10 +54,11 @@ end entity;
 
 architecture estagio_ex_arch of estagio_ex_13 is
     -- Sinais internos
-    signal rs1, rs2 : std_logic_vector(31 downto 0);
+    signal RA, RB : std_logic_vector(31 downto 0);
     signal result_ula : std_logic_vector(31 downto 0);
+    signal dado_arma_ex : std_logic_vector(31 downto 0);
     signal ula_zero : std_logic;
-    signal ex_forward_A, ex_forward_B : std_logic_vector(31 downto 0);
+    signal ex_aluin_A, ex_aluin_B : std_logic_vector(31 downto 0);
     
     -- Aliases para facilitar a leitura de sinais dentro do BEX
     alias rs1_id_ex_alias is BEX(132 downto 128);
@@ -84,46 +85,49 @@ begin
 
 	ula : alu port map (
 		-- Entradas
-		in_a => ex_forward_A,
-		in_b => ex_forward_B,
+		in_a => ex_aluin_A,
+		in_b => ex_aluin_B,
 		ALUOp => ula_op_alias,
 		ULA	=> result_ula,
 		zero => ula_zero
 	);
 
-	rs2 <= BEX(63 downto 32);
-	rs1 <= BEX(31 downto 0);
+    -- Atribuição das saídas
+    ULA_ex <= result_ula;
+    MemRead_ex <= BEX(147);
+    rd_ex <= rd_id_ex_alias;
+	RB <= BEX(63 downto 32);
+	RA <= BEX(31 downto 0);
+
     -- Comportamento do estágio de execução
     process(clock)
     begin
         if rising_edge(clock) then
             -- Seleciona os operandos para a ULA (forwarding ou valores atuais)
             if (RegWrite_mem = '1' and rd_mem = rs1_id_ex_alias) then
-                ex_forward_A <= Memval_mem;
+                ex_aluin_A <= Memval_mem;
 				ex_fw_A_Branch <= "10";
             elsif (RegWrite_wb = '1' and rd_wb = rs1_id_ex_alias) then
-                ex_forward_A <= writedata_wb;
+                ex_aluin_A <= writedata_wb;
 				ex_fw_A_Branch <= "01";
             else
-                ex_forward_A <= rs1; -- Aqui rs1 precisa ser definido adequadamente
+                ex_aluin_A <= RA; -- Aqui rs1 precisa ser definido adequadamente
 				ex_fw_A_Branch <= "00";
             end if;
 
-            if (RegWrite_mem = '1' and rd_mem = rd_id_ex_alias) then
-                ex_forward_B <= Memval_mem;
+            if (RegWrite_mem = '1' and rd_mem = rs2_id_ex_alias) then
+                ex_aluin_B <= Memval_mem;
 				ex_fw_B_Branch <= "10";
-            elsif (RegWrite_wb = '1' and rd_wb = rd_id_ex_alias) then
-                ex_forward_B <= writedata_wb;
+            elsif (RegWrite_wb = '1' and rd_wb = rs2_id_ex_alias) then
+                ex_aluin_B <= writedata_wb;
 				ex_fw_B_Branch <= "01";
+            elsif (BEX(146)='0') then
+                ex_aluin_B <= RB; -- Aqui rs2 precisa ser definido adequadamente
+				ex_fw_B_Branch <= "00";
             else
-                ex_forward_B <= rs2; -- Aqui rs2 precisa ser definido adequadamente
+                ex_aluin_B <= imm_alias;
 				ex_fw_B_Branch <= "00";
             end if;
-
-            -- Atribuição das saídas
-            ULA_ex <= result_ula;
-            MemRead_ex <= BEX(147);
-            rd_ex <= rd_id_ex_alias;
 
             -- Atribuição de BMEM
             BMEM(115 downto 114) <= BEX(151 downto 150);
@@ -132,7 +136,7 @@ begin
             BMEM(111) <= BEX(147);
             BMEM(110 downto 79) <= npc_ex_alias;
             BMEM(78 downto 47) <= result_ula;
-            BMEM(46 downto 15) <= (others => '0'); -- Placeholder for dado_arma_ex
+            BMEM(46 downto 15) <= ex_aluin_B; -- Placeholder for dado_arma_ex
             BMEM(14 downto 10) <= rs1_id_ex_alias;
             BMEM(9 downto 5) <= rs2_id_ex_alias;
             BMEM(4 downto 0) <= rd_id_ex_alias;
