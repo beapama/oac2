@@ -7,8 +7,8 @@ use ieee.std_logic_1164.all;
 use ieee.std_logic_arith.all;
 use ieee.std_logic_signed.all;
 
-library work;
-use work.tipos.all;
+library design;
+use design.tipos.all;
 
 -- Especifica�ao do estagio Executa - ex: declara�ao de entidade
 -- Neste est�gio sao executadas as instru�oes do tipo RR e calculado os endere�os 

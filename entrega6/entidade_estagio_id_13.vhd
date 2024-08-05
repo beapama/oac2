@@ -6,8 +6,8 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 use ieee.std_logic_signed.all;
 
-library work;
-use work.tipos.all;
+library design;
+use design.tipos.all;
 
 -- O est�gio de decodifica�ao e leitura de registradores (id) deve realizar a decodifica�ao 
 -- da instru�ao lida no est�gio de
@@ -72,7 +72,7 @@ architecture Behavioral of estagio_id_13 is
     signal funct7 : std_logic_vector(6 downto 0);
     signal rs1, rs2, rd : std_logic_vector(4 downto 0);
     signal imm : std_logic_vector(31 downto 0);
-    signal instruction : std_logic_vector(31 downto 0);
+    signal instruction : std_logic_vector(31 downto 0) := x"00000000";
     signal RegWrite_id, MemRead_id, MemWrite_id, AluSrc_id, MemToReg_id : std_logic;
     signal AluOp_id : std_logic_vector(2 downto 0);
     signal PC_id : std_logic_vector(31 downto 0);
@@ -136,6 +136,24 @@ begin
             when others =>
                 imm <= (others => '0');
         end case;
+
+        COP_id <= NOP when instruction(31 downto 0)=x"00000000" else
+                    HALT when instruction(31 downto 0)=x"0000006F" else
+                    ADD when instruction(6 downto 0)="0110011" and instruction(14 downto 12)="000" else
+                    SLT when instruction(6 downto 0)="0110011" and instruction(14 downto 12)="010" else
+                    ADDI when instruction(6 downto 0)="0010011" and instruction(14 downto 12)="000" else
+                    SLTI when instruction(6 downto 0)="0010011" and instruction(14 downto 12)="010" else
+                    SLLI when instruction(6 downto 0)="0010011" and instruction(14 downto 12)="001" else
+                    SRLI when instruction(6 downto 0)="0010011" and instruction(14 downto 12)="101" and instruction(31 downto 25)="0000000" else
+                    SRAI when instruction(6 downto 0)="0010011" and instruction(14 downto 12)="101" and instruction(31 downto 25)="0100000" else
+                    LW when instruction(6 downto 0)="0000011" and instruction(14 downto 12)="010" else
+                    SW when instruction(6 downto 0)="0100011" and instruction(14 downto 12)="010" else
+                    BEQ when instruction(6 downto 0)="1100011" and instruction(14 downto 12)="000" else
+                    BNE when instruction(6 downto 0)="1100011" and instruction(14 downto 12)="001" else
+                    BLT when instruction(6 downto 0)="1100011" and instruction(14 downto 12)="100" else
+                    JAL when instruction(6 downto 0)="1101111" else
+                    JALR when instruction(6 downto 0)="1100111" and instruction(14 downto 12)="000" else
+                    NOINST;
     end process;
 
     -- Geração dos sinais de controle
@@ -206,46 +224,6 @@ begin
         end case;
     end process;
 
-    -- Atribuição dos endereços de registradores
-    rs1_id_ex <= rs1;
-    rs2_id_ex <= rs2;
-
-    -- Atribuição dos sinais de controle ao BEX
-    BEX(151 downto 150) <= id_PC_src & MemToReg_id;
-    BEX(149) <= RegWrite_id;
-    BEX(148) <= MemWrite_id;
-    BEX(147) <= MemRead_id;
-    BEX(146) <= AluSrc_id;
-    BEX(145 downto 143) <= AluOp_id;
-    BEX(142 downto 138) <= rd;
-    BEX(137 downto 133) <= rs2;
-    BEX(132 downto 128) <= rs1;
-    BEX(127 downto 96) <= std_logic_vector(unsigned(PC_id) + 4); -- PC_id_Plus4
-    BEX(95 downto 64) <= imm;
-    BEX(63 downto 32) <= RB_id;
-    BEX(31 downto 0) <= RA_id;
-
-    -- Atribuição dos sinais de controle ao COP
-
-    COP_id <= NOP when instruction(31 downto 0)=x"00000000" else
-                HALT when instruction(31 downto 0)=x"0000006F" else
-                ADD when opcode="0110011" and funct3="000" else
-                SLT when opcode="0110011" and funct3="010" else
-                ADDI when opcode="0010011" and funct3="000" else
-                SLTI when opcode="0010011" and funct3="010" else
-                SLLI when opcode="0010011" and funct3="001" else
-                SRLI when opcode="0010011" and funct3="101" and funct7="0000000" else
-                SRAI when opcode="0010011" and funct3="101" and funct7="0100000" else
-                LW when opcode="0000011" and funct3="010" else
-                SW when opcode="0100011" and funct3="010" else
-                BEQ when opcode="1100011" and funct3="000" else
-                BNE when opcode="1100011" and funct3="001" else
-                BLT when opcode="1100011" and funct3="100" else
-                JAL when opcode="1101111" else
-                JALR when opcode="1100111" and funct3="000" else
-                NOINST;
-    -- COP_ex <= COP_id;
-
     -- Detecção de Conflitos
     process(clock)
     begin
@@ -262,10 +240,24 @@ begin
                 id_hd_hazard <= '1'; -- Hazard detectado, preservar o pipeline
             end if;
 
-            -- Branch Hazard
-            -- if (opcode = "1100011" or opcode="1100111" or opcode="1101111") then -- Verifica instruções de branch
-            --     id_Branch_nop <= '1'; -- Inserir NOP no próximo estágio
-            -- end if;
+            -- Atribuição dos endereços de registradores
+            rs1_id_ex <= rs1;
+            rs2_id_ex <= rs2;
+
+            -- Atribuição dos sinais de controle ao BEX
+            BEX(151 downto 150) <= MemToReg_id & MemToReg_id;
+            BEX(149) <= RegWrite_id;
+            BEX(148) <= MemWrite_id;
+            BEX(147) <= MemRead_id;
+            BEX(146) <= AluSrc_id;
+            BEX(145 downto 143) <= AluOp_id;
+            BEX(142 downto 138) <= rd;
+            BEX(137 downto 133) <= rs2;
+            BEX(132 downto 128) <= rs1;
+            BEX(127 downto 96) <= std_logic_vector(unsigned(PC_id) + 4); -- PC_id_Plus4
+            BEX(95 downto 64) <= imm;
+            BEX(63 downto 32) <= RB_id;
+            BEX(31 downto 0) <= RA_id;
 
         end if;
     end process;
