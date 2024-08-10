@@ -319,7 +319,7 @@ begin
 		);
 	
 	-- Rel�gio do Pipeline comper�odo definido pela constnate clock_period
- 	clock <= not clock after clock_period / 2 when Keep_simulating = true else
+ 	clock <= not clock after clock_period / 2 when keep_simulating = true else
 		     clock after clock_period;
  
 --processo de coleta de estat�sticas
@@ -517,7 +517,7 @@ begin
 	else
 		assert false report "Inicie execu�ao."severity note;
 		keep_simulating 	<= true;
-		wait for 4*clock_Period;
+		wait for 4*clock_period;
 		wait until COP_wb = HALT;
 		wait for clock_period;
 		keep_simulating 	<= false;
